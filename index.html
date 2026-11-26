@@ -84,7 +84,20 @@ const $=s=>document.querySelector(s);
 const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const norm=s=>s.trim().toLowerCase().replace(/[’']/g,"'").replace(/\s+/g,' ');
-function say(i){try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(ALL[i].en.replace(/\(.*?\)/g,''));u.lang='en-GB';u.rate=.9;speechSynthesis.speak(u)}catch(e){}}
+let VOICES=[],AUD=null;
+function loadVoices(){try{VOICES=speechSynthesis.getVoices()||[]}catch(e){}}
+try{loadVoices();speechSynthesis.onvoiceschanged=loadVoices}catch(e){}
+function pickVoice(){const en=VOICES.filter(v=>/^en/i.test(v.lang));return en.find(v=>/en[-_]GB/i.test(v.lang))||en.find(v=>/en[-_]US/i.test(v.lang))||en[0]||null}
+function toast(m){const e=$('#ss');if(!e)return;e.textContent=m;setTimeout(showSS,5000)}
+function webAudio(t){try{if(AUD)AUD.pause();AUD=new Audio('https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=en-GB&q='+encodeURIComponent(t));AUD.play().catch(()=>toast('Không phát được âm thanh. Hãy bật âm lượng, tắt chế độ im lặng rồi thử lại, hoặc mở bằng Chrome/Safari.'))}catch(e){toast('Thiết bị này không phát được âm thanh.')}}
+function say(i){const t=ALL[i].en.replace(/\(.*?\)/g,'').replace(/;/g,',').trim();
+ if(!('speechSynthesis' in window)||typeof SpeechSynthesisUtterance=='undefined')return webAudio(t);
+ try{const ss=speechSynthesis;ss.cancel();if(ss.paused)ss.resume();loadVoices();
+  const u=new SpeechSynthesisUtterance(t),v=pickVoice();if(v){u.voice=v;u.lang=v.lang}else u.lang='en-GB';u.rate=.9;
+  let ok=false,fb=false;const fall=()=>{if(!fb){fb=true;webAudio(t)}};u.onstart=()=>{ok=true};u.onerror=e=>{if(!ok&&e.error!='interrupted'&&e.error!='canceled')fall()};
+  ss.speak(u);
+  setTimeout(()=>{if(!ok){try{ss.cancel()}catch(e){}fall()}},1800)
+ }catch(e){webAudio(t)}}
 function alts(en){return [...new Set([en,en.replace(/\s*\([^)]*\)/g,'').trim(),en.replace(/^to /i,'')])]}
 function blank(w){for(const c of alts(w.en)){const x=w.ex.toLowerCase().indexOf(c.toLowerCase());if(x>=0&&!/[a-z]/i.test(w.ex[x+c.length]||'')&&!/[a-z]/i.test(x?w.ex[x-1]:''))return{t:w.ex.slice(0,x)+'_____'+w.ex.slice(x+c.length),a:w.ex.slice(x,x+c.length)}}return null}
 /* filters */
@@ -173,7 +186,7 @@ function vLis(){if(!G.it.length)return empty;const n=G.it.length;
 <div style="margin:14px 0"><button class="pr" style="font-size:30px;padding:14px 28px;border-radius:50%" onclick="say(${w.i})">🔊</button></div>${optBtns(it.o,w.vi,G.a,'lisAns')}
 ${G.a!==null?`<div class="row sp" style="margin-top:12px"><span class="mu">${esc(w.en)} ${esc(w.ipa)} = ${esc(w.vi)}</span><button class="pr" onclick="lisNext()">Tiếp →</button></div>`:''}</div>`}
 function lisAns(j){const it=G.it[G.i],ok=it.o[j]==it.w.vi;G.a=j;if(ok)G.s++;mark(it.w.i,ok);render()}
-function lisNext(){G.i++;G.a=null;if(G.i>=G.it.length)rec('listen',G.s,G.it.length);else{const nx=G.it[G.i];setTimeout(()=>{if(G.k=='listen'&&G.it[G.i]===nx&&mode=='listen')say(nx.w.i)},150)}render()}
+function lisNext(){G.i++;G.a=null;if(G.i>=G.it.length)rec('listen',G.s,G.it.length);else say(G.it[G.i].w.i);render()}
 /* --- đua 60 giây --- */
 function raceStart(){G={k:'race',pool:shuffle(W),i:0,s:0,n:0,combo:0,best:0,run:false,done:false,a:null,cur:null}}
 function raceBegin(){G.run=true;G.end=Date.now()+60000;G.tm=setInterval(raceTick,250);render()}
