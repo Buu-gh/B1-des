@@ -87,17 +87,22 @@ const norm=s=>s.trim().toLowerCase().replace(/[’']/g,"'").replace(/\s+/g,' ');
 let VOICES=[],AUD=null;
 function loadVoices(){try{VOICES=speechSynthesis.getVoices()||[]}catch(e){}}
 try{loadVoices();speechSynthesis.onvoiceschanged=loadVoices}catch(e){}
-function pickVoice(){const en=VOICES.filter(v=>/^en/i.test(v.lang));return en.find(v=>/en[-_]GB/i.test(v.lang))||en.find(v=>/en[-_]US/i.test(v.lang))||en[0]||null}
+function pickVoice(){const en=VOICES.filter(v=>/^en/i.test(v.lang)),gb=en.filter(v=>/en[-_]GB/i.test(v.lang)),us=en.filter(v=>/en[-_]US/i.test(v.lang));const fem=/female|samantha|serena|karen|moira|kate|hazel|susan|zira|aria|jenny|libby|sonia/i;return gb.find(v=>fem.test(v.name))||us.find(v=>fem.test(v.name))||gb[0]||us[0]||en[0]||null}
 function toast(m){const e=$('#ss');if(!e)return;e.textContent=m;setTimeout(showSS,5000)}
-function webAudio(t){try{if(AUD)AUD.pause();AUD=new Audio('https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=en-GB&q='+encodeURIComponent(t));AUD.play().catch(()=>toast('Không phát được âm thanh. Hãy bật âm lượng, tắt chế độ im lặng rồi thử lại, hoặc mở bằng Chrome/Safari.'))}catch(e){toast('Thiết bị này không phát được âm thanh.')}}
-function say(i){const t=ALL[i].en.replace(/\(.*?\)/g,'').replace(/;/g,',').trim();
- if(!('speechSynthesis' in window)||typeof SpeechSynthesisUtterance=='undefined')return webAudio(t);
+function deviceSay(t){
+ if(!('speechSynthesis' in window)||typeof SpeechSynthesisUtterance=='undefined')return toast('Thiết bị này không phát được âm thanh. Hãy thử mở bằng Chrome/Safari.');
  try{const ss=speechSynthesis;ss.cancel();if(ss.paused)ss.resume();loadVoices();
-  const u=new SpeechSynthesisUtterance(t),v=pickVoice();if(v){u.voice=v;u.lang=v.lang}else u.lang='en-GB';u.rate=.9;
-  let ok=false,fb=false;const fall=()=>{if(!fb){fb=true;webAudio(t)}};u.onstart=()=>{ok=true};u.onerror=e=>{if(!ok&&e.error!='interrupted'&&e.error!='canceled')fall()};
-  ss.speak(u);
-  setTimeout(()=>{if(!ok){try{ss.cancel()}catch(e){}fall()}},1800)
- }catch(e){webAudio(t)}}
+  const u=new SpeechSynthesisUtterance(t),v=pickVoice();if(v){u.voice=v;u.lang=v.lang}else u.lang='en-GB';u.rate=.95;u.pitch=1.1;u.volume=1;
+  u.onerror=e=>{if(e.error!='interrupted'&&e.error!='canceled')toast('Không phát được âm thanh. Hãy bật âm lượng và tắt chế độ im lặng.')};
+  ss.speak(u)}catch(e){toast('Không phát được âm thanh.')}}
+function say(i){const t=ALL[i].en.replace(/\(.*?\)/g,'').replace(/;/g,',').trim();
+ try{if(AUD)AUD.pause();if('speechSynthesis' in window)speechSynthesis.cancel()}catch(e){}
+ let ok=false,fb=false;const fall=()=>{if(fb||ok)return;fb=true;deviceSay(t)};
+ try{const a=new Audio('https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=en-GB&q='+encodeURIComponent(t));AUD=a;
+  a.onplaying=()=>{ok=true};a.onerror=fall;
+  const p=a.play();if(p&&p.catch)p.catch(fall);
+  setTimeout(()=>{if(!ok){try{a.pause()}catch(e){}fall()}},3000)
+ }catch(e){fall()}}
 function alts(en){return [...new Set([en,en.replace(/\s*\([^)]*\)/g,'').trim(),en.replace(/^to /i,'')])]}
 function blank(w){for(const c of alts(w.en)){const x=w.ex.toLowerCase().indexOf(c.toLowerCase());if(x>=0&&!/[a-z]/i.test(w.ex[x+c.length]||'')&&!/[a-z]/i.test(x?w.ex[x-1]:''))return{t:w.ex.slice(0,x)+'_____'+w.ex.slice(x+c.length),a:w.ex.slice(x,x+c.length)}}return null}
 /* filters */
