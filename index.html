@@ -104,6 +104,7 @@ function onFile(e){const f=e.target.files[0];if(!f)return;const r=new FileReader
 function resetData(){CUSTOM=false;fc.known=new Set(P.known);showSS();ALL=DEFAULT.slice();F={u:'',s:''};applyF();fillSel();go('list')}
 /* nav */
 const MODES=[
+ ['now','🎯','Đang học','Tiếp tục phần đang học','h'],
  ['list','📖','Từ vựng','Xem toàn bộ từ theo Unit','h'],
  ['fc','🃏','Flashcard','Lật thẻ, tự đánh giá','h'],
  ['quiz','📝','Trắc nghiệm','30 câu, tính điểm','l'],
@@ -119,11 +120,11 @@ const MODES=[
 const modes=()=>MODES.concat(isAdmin?[['cls','👩‍🏫','Lớp (GV)','Kết quả cả lớp','m']]:[]);
 const need2=k=>!['list','hist','cls'].includes(k)&&W.length<2;
 let G={};
-function go(m){clearInterval(G.tm);mode=m;if(m=='fc')fcStart();if(m=='quiz')quizStart();if(m=='type'||m=='cloze')typedStart(m);if(m=='match')matchStart();if(m=='scr')scrStart();if(m=='ord')ordStart();if(m=='listen')lisStart();if(m=='race')raceStart();if(m=='mem')memStart();if(m=='cls'){loadClass();return}render();window.scrollTo(0,0)}
+function go(m){clearInterval(G.tm);USED=true;mode=m;if(!CUSTOM&&!['now','hist','cls'].includes(m)){P.last={u:F.u,s:F.s,m};touch()}if(m=='fc')fcStart();if(m=='quiz')quizStart();if(m=='type'||m=='cloze')typedStart(m);if(m=='match')matchStart();if(m=='scr')scrStart();if(m=='ord')ordStart();if(m=='listen')lisStart();if(m=='race')raceStart();if(m=='mem')memStart();if(m=='cls'){loadClass();return}render();window.scrollTo(0,0)}
 function render(){
  $('#nav').innerHTML=modes().map(x=>`<button class="tab ${x[0]==mode?'on':''}" ${need2(x[0])?'disabled':''} onclick="go('${x[0]}')">${x[1]} ${x[2]}</button>`).join('');
  $('#cnt').textContent=W.length+' từ';
- $('#app').innerHTML=({list:vHome,fc:vFc,quiz:vQuiz,type:vTyped,cloze:vTyped,match:vMatch,scr:vScr,ord:vOrd,listen:vLis,race:vRace,mem:vMem,hist:vHist,cls:vCls})[mode]();
+ $('#app').innerHTML=({list:vHome,fc:vFc,quiz:vQuiz,type:vTyped,cloze:vTyped,match:vMatch,scr:vScr,ord:vOrd,listen:vLis,race:vRace,mem:vMem,hist:vHist,cls:vCls,now:vNow})[mode]();
  if((mode=='type'||mode=='cloze')&&!T.res){const i=$('#ans');if(i)i.focus()}
  if(mode=='match'&&M.t0&&!M.fin){clearInterval(M.tm);M.tm=setInterval(()=>{const e=$('#tm');if(e)e.textContent=Math.floor((Date.now()-M.t0)/1000)+'s';else clearInterval(M.tm)},500)}
 }
@@ -253,11 +254,11 @@ document.addEventListener('keydown',e=>{if(mode=='fc'&&!/INPUT|TEXTAREA|SELECT/.
 /* ===== lịch sử học ===== */
 const KIND={fc:'Flashcard',quiz:'Trắc nghiệm',type:'Gõ từ',cloze:'Điền câu',match:'Ghép cặp',scr:'Xếp chữ',ord:'Xếp câu',listen:'Nghe & chọn',race:'Đua 60s',mem:'Lật thẻ nhớ'};
 let CUSTOM=false,DB=null,USR=null,UID=null,CAN=false,isAdmin=false,dirty=false,busy=false,tmr=null,LAST='',SSBASE={s:'init',t:'Đang kết nối để lưu lịch sử học…'};
-let P={known:[],miss:{},sessions:[],n:0,sum:0,cnt:0,xp:0,st:0,day:''},CL={rows:null,names:{},err:''};
-const sig=p=>JSON.stringify([p.known,p.miss,p.sessions,p.n,p.sum,p.cnt,p.xp,p.st,p.day]);
+let P={known:[],miss:{},sessions:[],n:0,sum:0,cnt:0,xp:0,st:0,day:'',last:null},CL={rows:null,names:{},err:''};
+const sig=p=>JSON.stringify([p.known,p.miss,p.sessions,p.n,p.sum,p.cnt,p.xp,p.st,p.day,p.last]);
 const day=o=>new Date(Date.now()-(o||0)*864e5).toLocaleDateString('en-CA');
 function bump(){const d=day();if(P.day==d)return;P.st=(P.day==day(1))?(P.st||0)+1:1;P.day=d}
-let LOCAL=false;const LSK='b1vocab_progress_v1';
+let LOCAL=false,USED=false;const LSK='b1vocab_progress_v1';
 function showSS(){const e=$('#ss');if(e)e.textContent=CUSTOM?'Đang dùng danh sách riêng – lịch sử không được lưu.':SSBASE.t}
 function setSS(s,t){SSBASE={s,t};showSS()}
 function touch(){if(CUSTOM||!CAN)return;clearTimeout(tmr);tmr=setTimeout(flush,1500)}
@@ -269,7 +270,7 @@ async function flush(){
  if(LOCAL){try{localStorage.setItem(LSK,JSON.stringify(P));LAST=j;setSS('ok','✓ Đã lưu trên thiết bị này'+(P.n?' · '+P.n+' bài đã làm':''))}catch(e){setSS('err','Không lưu được (trình duyệt đang chặn lưu trữ).')}busy=false;return}
  try{
   const top=Object.entries(P.miss).sort((a,b)=>b[1]-a[1]).slice(0,10).map(x=>+x[0]);
-  await DB.doc('data/users/'+UID+'/progress').set({known:P.known,miss:P.miss,sessions:P.sessions,n:P.n,sum:P.sum,cnt:P.cnt,xp:P.xp,st:P.st,day:P.day});
+  await DB.doc('data/users/'+UID+'/progress').set({known:P.known,miss:P.miss,sessions:P.sessions,n:P.n,sum:P.sum,cnt:P.cnt,xp:P.xp,st:P.st,day:P.day,last:P.last});
   await DB.doc('results/'+UID).set({n:P.n,avg:P.cnt?P.sum/P.cnt:null,known:P.known.length,xp:P.xp,st:P.st,last:P.sessions.length?P.sessions[P.sessions.length-1].t:0,top,updated:Date.now()});
   LAST=j;setSS('ok','✓ Đã lưu lịch sử học của bạn'+(P.n?' · '+P.n+' bài đã làm':''));
  }catch(e){
@@ -280,6 +281,18 @@ async function flush(){
 }
 function fmt(t){const d=new Date(t);return d.toLocaleDateString('vi-VN')+' '+d.toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit'})}
 function hardStart(){const ids=Object.entries(P.miss).sort((a,b)=>b[1]-a[1]).slice(0,30).map(x=>+x[0]).filter(i=>DEFAULT[i]);if(!ids.length)return;mode='fc';fcStart(shuffle(ids));render()}
+function resume(){const l=P.last;if(!l)return;F={u:l.u||'',s:l.s||''};applyF();fillSel();go(l.m)}
+function openUnit(k){const U=[...new Set(DEFAULT.map(w=>w.u))];F={u:U[k],s:''};applyF();fillSel();go('list')}
+function vNow(){
+ if(CUSTOM)return `<div class="card c mu">Bạn đang dùng danh sách riêng nên tiến độ không được lưu.</div>`;
+ const U=[...new Set(DEFAULT.map(w=>w.u))],kn=new Set(P.known);
+ const R=U.map((u,k)=>{const ws=DEFAULT.filter(w=>w.u==u),sess=P.sessions.filter(x=>(x.f||'').startsWith(u));return{u,k,t:ws.length,kn:ws.filter(w=>kn.has(w.i)).length,n:sess.length,last:sess.length?sess[sess.length-1].t:0}});
+ const act=R.filter(r=>r.kn||r.n).sort((a,b)=>b.last-a.last),idle=R.filter(r=>!(r.kn||r.n));
+ const l=P.last,lm=l&&MODES.find(x=>x[0]==l.m);
+ const row=r=>`<button class="tl" style="width:100%;min-height:0;margin-bottom:8px" onclick="openUnit(${r.k})"><div class="row sp" style="width:100%"><b>${esc(r.u)}</b><span class="mu">${r.kn}/${r.t} từ đã thuộc</span></div><div class="bar" style="margin:6px 0 2px;width:100%"><i style="width:${r.t?r.kn/r.t*100:0}%"></i></div><span class="mu">${r.n?r.n+' bài đã làm · lần cuối '+esc(fmt(r.last)):'Chưa làm bài nào'}</span></button>`;
+ return (l&&lm?`<div class="card"><div class="mu">Bạn học gần nhất</div><div style="margin:6px 0 12px"><b>${esc(l.u||'Tất cả các Unit')}${l.s?' · '+esc(l.s):''}</b> — ${lm[1]} ${esc(lm[2])}</div><button class="pr" onclick="resume()">Tiếp tục học →</button></div>`:`<div class="card c"><b>Bạn chưa học phần nào</b><p class="mu">Chọn Unit ở thanh phía trên rồi mở một bài để bắt đầu. Tiến độ sẽ hiện ở đây.</p></div>`)
+ +(act.length?`<div class="gh">Đang học</div>${act.map(row).join('')}`:'')
+ +(idle.length?`<details style="margin-top:10px"><summary class="mu" style="cursor:pointer">Chưa học (${idle.length} Unit)</summary><div style="margin-top:8px">${idle.map(row).join('')}</div></details>`:'')}
 function vHist(){
  if(CUSTOM)return `<div class="card c mu">Bạn đang dùng danh sách riêng nên lịch sử không được lưu. Bấm “Dùng lại danh sách Destination B1” ở tab Từ vựng để xem lịch sử.</div>`;
  if(!CAN)return `<div class="card c"><b>Chưa lưu được lịch sử</b><p class="mu">Hãy đăng nhập claude.ai (và mở bằng link giáo viên chia sẻ) để lịch sử học được lưu lại.</p></div>`;
@@ -303,13 +316,15 @@ function vCls(){
  return `<div class="card"><div class="row sp"><b>Kết quả của lớp (${R.length} học sinh)</b><button onclick="loadClass()">Làm mới</button></div>${CL.err?`<p class="bad msg">${esc(CL.err)}</p>`:''}
 ${R.length?`<div class="tw"><table><tr><th>Học sinh</th><th>Bài</th><th>Điểm TB</th><th>Đã thuộc</th><th>Lần cuối</th></tr>${R.map((r,k)=>`<tr><td>${esc(CL.names[r.id]||'Học sinh '+(k+1))}</td><td>${r.n||0}</td><td>${r.avg==null?'–':Math.round(r.avg*100)+'%'}</td><td>${r.known||0}</td><td>${r.last?esc(fmt(r.last)):'–'}</td></tr>`).join('')}</table></div>`:'<p class="mu" style="margin-bottom:0">Chưa có học sinh nào làm bài.</p>'}</div>
 ${hard.length?`<div class="card"><b>Từ cả lớp hay sai</b><div class="tw"><table><tr><th>English</th><th>Tiếng Việt</th><th>Số HS sai nhiều</th></tr>${hard.map(([i,c])=>`<tr><td>${esc(DEFAULT[i].en)}</td><td>${esc(DEFAULT[i].vi)}</td><td>${c}</td></tr>`).join('')}</table></div></div>`:''}`}
+addEventListener('pagehide',()=>{clearTimeout(tmr);tmr=null;flush()});
 document.addEventListener('visibilitychange',()=>{if(document.hidden){clearTimeout(tmr);tmr=null;flush()}});
 function mergeLoaded(L){
- LAST=sig({known:L.known||[],miss:L.miss||{},sessions:L.sessions||[],n:L.n||0,sum:L.sum||0,cnt:L.cnt||0,xp:L.xp||0,st:L.st||0,day:L.day||''});
+ LAST=sig({known:L.known||[],miss:L.miss||{},sessions:L.sessions||[],n:L.n||0,sum:L.sum||0,cnt:L.cnt||0,xp:L.xp||0,st:L.st||0,day:L.day||'',last:L.last||null});
  const m={...(L.miss||{})};for(const k in P.miss)m[k]=(m[k]||0)+P.miss[k];const had=P.day;
- P={known:[...new Set([...(L.known||[]),...P.known])].sort((a,b)=>a-b),miss:m,sessions:(L.sessions||[]).concat(P.sessions).slice(-100),n:(L.n||0)+P.n,sum:(L.sum||0)+P.sum,cnt:(L.cnt||0)+P.cnt,xp:(L.xp||0)+(P.xp||0),st:L.st||0,day:L.day||''};
+ P={known:[...new Set([...(L.known||[]),...P.known])].sort((a,b)=>a-b),miss:m,sessions:(L.sessions||[]).concat(P.sessions).slice(-100),n:(L.n||0)+P.n,sum:(L.sum||0)+P.sum,cnt:(L.cnt||0)+P.cnt,xp:(L.xp||0)+(P.xp||0),st:L.st||0,day:L.day||'',last:P.last||L.last||null};
  if(had)bump();fc.known=new Set(P.known)}
-function initLocal(msg){LOCAL=true;try{const L=JSON.parse(localStorage.getItem(LSK)||'null');if(L)mergeLoaded(L)}catch(e){}CAN=true;setSS('ok',msg);touch();render()}
+function restore(){if(USED||CUSTOM||!(P.n||P.known.length||P.last))return;if(P.last){F={u:P.last.u||'',s:P.last.s||''};applyF();fillSel()}mode='now';render();USED=false}
+function initLocal(msg){LOCAL=true;try{const L=JSON.parse(localStorage.getItem(LSK)||'null');if(L)mergeLoaded(L)}catch(e){}CAN=true;setSS('ok',msg);touch();restore();render()}
 (async()=>{
  try{
   if(!(window.claude&&claude.use))return initLocal('Lịch sử học được lưu trên thiết bị này.');
@@ -323,7 +338,7 @@ function initLocal(msg){LOCAL=true;try{const L=JSON.parse(localStorage.getItem(L
   try{const sn=await db.doc('data/users/'+UID+'/progress').get();L=sn.exists?sn.data():{}}catch(e){clearTimeout(to);return initLocal('Không tải được lịch sử đã lưu – tạm lưu trên thiết bị này.')}
   clearTimeout(to);mergeLoaded(L);CAN=true;
   setSS('ok','✓ Lịch sử học của bạn được lưu tự động'+(P.n?' · '+P.n+' bài đã làm':''));
-  touch();render();
+  touch();restore();render();
  }catch(e){initLocal('Lịch sử học được lưu trên thiết bị này.')}
 })();
 applyF();fillSel();render();showSS();
