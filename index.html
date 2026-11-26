@@ -1,4 +1,3 @@
-<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
 <!DOCTYPE html>
 <html lang="vi">
 <head>
@@ -37,6 +36,7 @@ table{width:100%;border-collapse:collapse;font-size:14px}th,td{text-align:left;p
 .tile{min-height:64px;padding:8px;font-size:15px}.tile.sel{border-color:var(--pr);outline:2px solid var(--pr)}.tile.done{visibility:hidden}
 .spk{padding:4px 10px;border-radius:20px}
 .tag{font-size:12px;color:var(--mu)}
+.tx{overflow-x:auto}.unit>summary{cursor:pointer;font-size:18px}h3{font-size:15px;margin:16px 0 6px;color:var(--pr)}
 </style>
 </head>
 <body>
@@ -84,8 +84,16 @@ function render(){
  if((mode=='type'||mode=='cloze')&&!T.res){const i=$('#ans');if(i)i.focus()}
  if(mode=='match'&&M.t0&&!M.fin){clearInterval(M.tm);M.tm=setInterval(()=>{const e=$('#tm');if(e)e.textContent=Math.floor((Date.now()-M.t0)/1000)+'s';else clearInterval(M.tm)},500)}
 }
+function vList(){
+ if(!W.length)return '<div class="card c mu">Không có từ nào trong phần đã chọn.</div>';
+ const U=[...new Set(W.map(w=>w.u))];
+ return `<div class="row" style="margin-bottom:10px"><button onclick="document.querySelectorAll('.unit').forEach(d=>d.open=true)">Mở tất cả</button><button onclick="document.querySelectorAll('.unit').forEach(d=>d.open=false)">Thu gọn tất cả</button></div>`+U.map(u=>{
+  const ws=W.filter(w=>w.u==u),S=[...new Set(ws.map(w=>w.s))];
+  return `<details class="card unit" open><summary><b>${esc(u)}</b> <span class="mu">· ${ws.length} từ</span></summary>`+S.map(sec=>{
+   const L=ws.filter(w=>w.s==sec);
+   return `<h3>${esc(sec)} <span class="mu">(${L.length})</span></h3><div class="tx"><table><tr><th></th><th>English</th><th>IPA</th><th>Tiếng Việt</th><th>Ví dụ</th></tr>${L.map(w=>`<tr><td><button class="spk" onclick="say(${w.i})">🔊</button></td><td><b>${esc(w.en)}</b></td><td>${esc(w.ipa)}</td><td>${esc(w.vi)}</td><td class="mu">${esc(w.ex)}</td></tr>`).join('')}</table></div>`}).join('')+`</details>`}).join('')}
 function vHome(){return `<div class="card"><b>Chọn Unit và mục ở phía trên</b><p class="mu" style="margin:6px 0 0">Sau đó mở Flashcard, Trắc nghiệm, Gõ từ, Điền câu hoặc Ghép cặp để luyện tập đúng phần đó. Nhấn 🔊 để nghe phát âm.</p></div>
-<div class="card"><div class="tw"><table><tr><th></th><th>English</th><th>IPA</th><th>Tiếng Việt</th><th>Ví dụ</th></tr>${W.map(w=>`<tr><td><button class="spk" onclick="say(${w.i})">🔊</button></td><td><b>${esc(w.en)}</b></td><td>${esc(w.ipa)}</td><td>${esc(w.vi)}</td><td class="mu">${esc(w.ex)}</td></tr>`).join('')}</table></div></div>
+${vList()}
 <details class="card"><summary>Nạp danh sách từ khác (tùy chọn)</summary>
 <p class="mu">Mỗi dòng một từ: <b>English, IPA, Tiếng Việt, Ví dụ</b> (ngăn cách bằng dấu phẩy, tab, “|” hoặc “;”). Hỗ trợ file .csv, .txt, .tsv.</p>
 <input type="file" accept=".csv,.txt,.tsv" onchange="onFile(event)"><p class="mu" style="margin-bottom:6px">Hoặc dán trực tiếp:</p><textarea id="paste"></textarea>
@@ -209,5 +217,3 @@ applyF();fillSel();render();showSS();
 </script>
 </body>
 </html>
-
-</body></html>
