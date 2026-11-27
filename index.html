@@ -65,11 +65,13 @@ nav{align-items:center;gap:6px;overflow:visible;flex-wrap:wrap}.tab{padding:7px 
 @media(max-width:560px){.tx tr:first-child{display:none}.tx table,.tx tbody{display:block}.tx tr{display:block;padding:8px 0;border-bottom:1px solid var(--bd)}.tx td{display:inline;border:0;padding:0 8px 0 0}.tx td:nth-child(4){display:block;font-weight:600;margin-top:2px}.tx td:nth-child(5){display:block;margin-top:2px}}
 
 .tx{overflow-x:auto}.unit>summary{cursor:pointer;font-size:18px}h3{font-size:15px;margin:16px 0 6px;color:var(--pr)}
+.bks{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}.bks button{padding:10px 16px;font-size:16px;font-weight:700;border-radius:12px;border:2px solid var(--bd,#d9dde3);background:#fff;color:inherit;cursor:pointer}.bks button.on{border-color:#c2410c;background:#fff4ec;color:#c2410c}.bks button small{display:block;font-weight:400;font-size:12px;opacity:.7}
 </style>
 </head>
 <body>
-<div class="top"><button class="logo" onclick="backToBooks()">Thầy Bửu</button><span class="mu" id="bk"></span><span class="grow"></span><button id="chg" onclick="backToBooks()" style="padding:5px 10px;font-size:14px">📚 Đổi sách</button></div>
+<div class="top"><button class="logo" onclick="backToBooks()">Thầy Bửu</button><span class="mu" id="bk"></span><span class="grow"></span></div>
 <div class="wrap">
+<div id="bks" class="bks"></div>
 <nav id="nav"></nav>
 <div class="row" id="frow" style="margin-bottom:12px;flex-wrap:nowrap"><select id="fsel" onchange="setF()" style="flex:1;min-width:0;font-size:16px;font-weight:600"></select><span class="mu" id="cnt" style="white-space:nowrap"></span></div>
 <div class="mu" id="ss" style="margin-bottom:8px"></div>
@@ -140,9 +142,9 @@ const need2=k=>!['list','hist','cls'].includes(k)&&W.length<2;
 let G={};
 function go(m){clearInterval(G.tm);USED=true;mode=m;if(!CUSTOM&&!['now','hist','cls'].includes(m)){P.last={u:F.u,s:F.s,m};touch()}if(m=='fc')fcStart();if(m=='quiz')quizStart();if(m=='type'||m=='cloze')typedStart(m);if(m=='match')matchStart();if(m=='scr')scrStart();if(m=='ord')ordStart();if(m=='listen')lisStart();if(m=='race')raceStart();if(m=='mem')memStart();if(m=='cls'){loadClass();return}render();window.scrollTo(0,0)}
 function render(){
- const bkn=BOOK&&BOOKS.find(x=>x.id==BOOK);$('#bk').textContent=bkn?bkn.name:'';
- if(mode=='books'){$('#chg').style.display='none';$('#frow').style.display='none';$('#ss').style.display='none';$('#nav').innerHTML='';$('#app').innerHTML=vBooks();return}
- $('#chg').style.display='';$('#frow').style.display='';$('#ss').style.display='';
+ $('#bk').textContent='';$('#bks').innerHTML=BOOKS.map(b=>`<button class="${b.id==BOOK?'on':''}" onclick="pickBook('${b.id}')">📘 ${esc(b.name)}<small>${b.raw.length} từ</small></button>`).join('');
+ if(mode=='books'){$('#frow').style.display='none';$('#ss').style.display='none';$('#nav').innerHTML='';$('#app').innerHTML=vBooks();return}
+ $('#frow').style.display='';$('#ss').style.display='';
  $('#nav').innerHTML=modes().map(x=>`<button class="tab ${x[0]==mode?'on':''}" ${need2(x[0])?'disabled':''} onclick="go('${x[0]}')">${x[1]} ${x[2]}</button>`).join('');
  $('#cnt').textContent=W.length+' từ';
  $('#app').innerHTML=({list:vHome,fc:vFc,quiz:vQuiz,type:vTyped,cloze:vTyped,match:vMatch,scr:vScr,ord:vOrd,listen:vLis,race:vRace,mem:vMem,hist:vHist,cls:vCls,now:vNow})[mode]();
@@ -373,10 +375,10 @@ async function loadBookProgress(){
  touch();restore();render()}
 async function leaveBook(){clearTimeout(tmr);tmr=null;while(busy)await new Promise(r=>setTimeout(r,50));await flush()}
 async function pickBook(id){
- await leaveBook();BOOK=id;const b=BOOKS.find(x=>x.id==id);ALL=mk(b.raw);DEFAULT=ALL.slice();CUSTOM=false;F={u:'',s:''};
- resetP();applyF();fillSel();mode='list';USED=false;render();window.scrollTo(0,0);loadBookProgress()}
+ if(id==BOOK)return;await leaveBook();BOOK=id;const b=BOOKS.find(x=>x.id==id);ALL=mk(b.raw);DEFAULT=ALL.slice();CUSTOM=false;F={u:'',s:''};
+ resetP();applyF();fillSel();mode='list';USED=false;render();loadBookProgress()}
 async function backToBooks(){await leaveBook();BOOK=null;mode='books';CAN=false;render();window.scrollTo(0,0)}
-function vBooks(){return `<div class="card c"><div class="big2">📚</div><div class="big" style="margin:10px 0 4px">Học tiếng Anh cùng thầy Bửu</div><div class="mu">Chọn sách để bắt đầu ôn từ vựng</div></div><div class="hub">${BOOKS.map(b=>`<button class="tl" onclick="pickBook('${b.id}')"><span class="ic">📘</span><b>${esc(b.name)}</b><span class="mu">${esc(b.sub||'')} · ${b.raw.length} từ</span></button>`).join('')}</div>`}
+function vBooks(){return `<div class="card c"><div class="big2">📚</div><div class="big" style="margin:10px 0 4px">Học tiếng Anh cùng thầy Bửu</div><div class="mu">Chọn một sách ở trên để bắt đầu ôn từ vựng</div></div>`}
 applyF();fillSel();render();showSS();initEnv().then(()=>render());
 </script>
 </body>
