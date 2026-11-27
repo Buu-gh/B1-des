@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Học tiếng Anh cùng thầy Bửu</title>
+<title>Học từ vựng tiếng Anh</title>
 <style>
 :root{--bg:#f6f7fb;--card:#fff;--tx:#1b1f2a;--mu:#6b7280;--pr:#4f46e5;--prt:#fff;--ok:#16a34a;--okb:#dcfce7;--bad:#dc2626;--badb:#fee2e2;--bd:#e5e7eb;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);color-scheme:light}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#12141b;--card:#1c1f2a;--tx:#eceef4;--mu:#9aa1b2;--pr:#818cf8;--prt:#12141b;--ok:#4ade80;--okb:#12301d;--bad:#f87171;--badb:#3a1818;--bd:#2c3040;color-scheme:dark}}
@@ -69,7 +69,7 @@ nav{align-items:center;gap:6px;overflow:visible;flex-wrap:wrap}.tab{padding:7px 
 </style>
 </head>
 <body>
-<div class="top"><button class="logo" onclick="backToBooks()">Thầy Bửu</button><span class="mu" id="bk"></span><span class="grow"></span></div>
+<div class="top"><button class="logo" style="cursor:default">Học từ vựng tiếng Anh</button><span class="mu" id="bk"></span><span class="grow"></span></div>
 <div class="wrap">
 <div id="bks" class="bks"></div>
 <nav id="nav"></nav>
@@ -375,11 +375,12 @@ async function loadBookProgress(){
  touch();restore();render()}
 async function leaveBook(){clearTimeout(tmr);tmr=null;while(busy)await new Promise(r=>setTimeout(r,50));await flush()}
 async function pickBook(id){
- if(id==BOOK)return;await leaveBook();BOOK=id;const b=BOOKS.find(x=>x.id==id);ALL=mk(b.raw);DEFAULT=ALL.slice();CUSTOM=false;F={u:'',s:''};
+ if(id==BOOK)return;await leaveBook();BOOK=id;const b=BOOKS.find(x=>x.id==id);try{localStorage.setItem('vocab_lastbook',id)}catch(e){}ALL=mk(b.raw);DEFAULT=ALL.slice();CUSTOM=false;F={u:'',s:''};
  resetP();applyF();fillSel();mode='list';USED=false;render();loadBookProgress()}
 async function backToBooks(){await leaveBook();BOOK=null;mode='books';CAN=false;render();window.scrollTo(0,0)}
-function vBooks(){return `<div class="card c"><div class="big2">📚</div><div class="big" style="margin:10px 0 4px">Học tiếng Anh cùng thầy Bửu</div><div class="mu">Chọn một sách ở trên để bắt đầu ôn từ vựng</div></div>`}
+function vBooks(){return `<div class="card c mu">Chọn một sách ở trên để bắt đầu.</div>`}
 applyF();fillSel();render();showSS();initEnv().then(()=>render());
+{let lb=null;try{lb=localStorage.getItem('vocab_lastbook')}catch(e){}pickBook(BOOKS.some(b=>b.id==lb)?lb:BOOKS[0].id)}
 </script>
 </body>
 </html>
